@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connecting to Browser...</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+        .loader {
+            border: 4px solid #1e293b;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="loader"></div>
+    <div id="status">กำลังเชื่อมต่อเซิร์ฟเวอร์ล่าสุด...</div>
+
+    <script>
+        // 🛑 นำ GIST_ID ที่ได้จากส่วนที่ 1 มาใส่ตรงนี้
+        const GIST_ID = "2ce743ae0783b96928494f9eab35a24d"; 
+        
+        // รหัสผ่าน Admin ที่ตรงกับใน .env ของคุณ
+        const ADMIN_TOKEN = "film"; 
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAdmin = urlParams.has('admin'); // เช็คว่ามี ?admin=1 ต่อท้ายไหม
+
+        async function fetchLatestUrl() {
+            try {
+                // พ่วงเวลาปัจจุบันไปที่ URL เพื่อบังคับให้เบราว์เซอร์ไม่จำ Cache
+                const response = await fetch(`https://api.github.com/gists/${GIST_ID}?timestamp=${new Date().getTime()}`);
+                if (!response.ok) throw new Error("โหลดข้อมูลเซิร์ฟเวอร์ไม่สำเร็จ");
+                
+                const data = await response.json();
+                const fileContent = data.files['tunnel.json'].content;
+                const parsedData = JSON.parse(fileContent);
+                
+                if (parsedData.url) {
+                    let targetUrl = parsedData.url;
+                    
+                    // ถ้าเข้าผ่าน /?admin=1 ให้ต่อท้าย Token เข้าไปอัตโนมัติ
+                    if (isAdmin) {
+                        targetUrl += `/?token=${ADMIN_TOKEN}`;
+                    }
+
+                    document.getElementById('status').innerText = "กำลังเปลี่ยนเส้นทาง...";
+                    window.location.replace(targetUrl);
+                } else {
+                    document.getElementById('status').innerText = "❌ ไม่พบ URL ในระบบ";
+                }
+            } catch (error) {
+                document.getElementById('status').innerText = "❌ เกิดข้อผิดพลาด: " + error.message;
+            }
+        }
+
+        fetchLatestUrl();
+    </script>
+</body>
+</html>
